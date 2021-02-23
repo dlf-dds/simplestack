@@ -8,18 +8,7 @@ from os import path
 
 def around_the_world(event, context):
     print(f"running {Path(__file__).resolve()}")
-
-    logoutfilepath = Path(__file__).resolve().parent.parent.parent\
-        .joinpath("logs").joinpath("manual-logs.log")
     
-    try:
-        if not path.exists(logoutfilepath):
-            with open(logoutfilepath, "w")  as outfile:
-                outfile.write(f"starting up manual log file for lambda: {Path(__file__)}\n")
-        with open(logoutfilepath, "a")  as outfile:
-            outfile.write(f"running lamdba: {Path(__file__)}\n")
-    except:
-        print("manual log file failed.")
 
     body = {
         "message": "We are sending the record back into a new Kinesis Stream",
@@ -27,19 +16,25 @@ def around_the_world(event, context):
     print(event)
     
 
-    kinesis_endpoint = os.getenv('KINESIS_ENDPOINT', None)
-    initial_security_token = os.getenv('AWS_SECURITY_TOKEN', None)
-
-    if initial_security_token == None:
+    KINESIS_ENDPOINT_ = os.getenv('KINESIS_ENDPOINT', None)
+    AWS_SECURITY_TOKEN_ = os.getenv('AWS_SECURITY_TOKEN', None)
+    AWS_ACCESS_KEY_ID_ = os.getenv('AWS_ACCESS_KEY_ID', None)
+    AWS_SECRET_ACCESS_KEY_ = os.getenv('AWS_SECRET_ACCESS_KEY', None)
+    
+    if AWS_SECURITY_TOKEN_ == None:
         os.environ['AWS_SECURITY_TOKEN'] = "test"
-    try:
-        with open(logoutfilepath, "a")  as outfile:
-            outfile.write(f"initial_security_token: {initial_security_token}"+"\n")
-    except:
-        print("manual log file failed.")
+    if AWS_ACCESS_KEY_ID_ == None:
+        os.environ['AWS_ACCESS_KEY_ID'] = "test"
+    if AWS_SECRET_ACCESS_KEY_ == None:
+        os.environ['AWS_SECRET_ACCESS_KEY'] = "test"
 
-    if kinesis_endpoint:
-        kinesis = boto3.client('kinesis',endpoint_url=kinesis_endpoint)
+    print(f"initial AWS_SECURITY_TOKEN: {AWS_SECURITY_TOKEN_}"+"\n")
+    print(f"initial AWS_ACCESS_KEY_ID: {AWS_ACCESS_KEY_ID_}"+"\n")
+    print(f"initial AWS_SECRET_ACCESS_KEY: {AWS_SECRET_ACCESS_KEY_}"+"\n")
+    print(f"initial KINESIS_ENDPOINT: {KINESIS_ENDPOINT_}"+"\n")
+
+    if KINESIS_ENDPOINT_:
+        kinesis = boto3.client('kinesis',endpoint_url=KINESIS_ENDPOINT_)
     else:
         kinesis = boto3.client('kinesis')
     for record in event["Records"]:
@@ -48,40 +43,54 @@ def around_the_world(event, context):
         print(f"stream_name:{stream_name}")
         # PartitionKey=str(hash(json.dumps(event)))
         try:
-            last_kinesis_response = kinesis.put_record(
-                StreamName=stream_name,
-                Data=json.dumps(event), 
-                PartitionKey=str(hash(stream_name))
-            )
-            body.update(json.loads(decoded_data))
-            body.update(last_kinesis_response)
+            print("""
+                hold off on kinesis.put_record bc localstack can't handle it.
+                I think it's trying to hit real AWS Cloud services from the lambda.
+                And it cannot reach http://localhost:4566 from within the lambda container""")
             lambda_response = {
                 "statusCode": 200,
                 "body": json.dumps(body),
                 "handlerLocation": f"{Path(__file__).resolve()}",
                 "stream": stream_name,
-                "initial_security_token": initial_security_token,
-                "kinesis_endpoint": kinesis_endpoint
+                "KINESIS_ENDPOINT_": KINESIS_ENDPOINT_,
+                "AWS_SECURITY_TOKEN_": AWS_SECURITY_TOKEN_,
+                "AWS_ACCESS_KEY_ID_": AWS_ACCESS_KEY_ID_,
+                "AWS_SECRET_ACCESS_KEY_": AWS_SECRET_ACCESS_KEY_,          
             }
+            if False:
+                last_kinesis_response = kinesis.put_record(
+                    StreamName=stream_name,
+                    Data=json.dumps(event), 
+                    PartitionKey=str(hash(stream_name))
+                )
+                body.update(json.loads(decoded_data))
+                body.update(last_kinesis_response)
+                lambda_response = {
+                    "statusCode": 200,
+                    "body": json.dumps(body),
+                    "handlerLocation": f"{Path(__file__).resolve()}",
+                    "stream": stream_name,
+                    "KINESIS_ENDPOINT_": KINESIS_ENDPOINT_,
+                    "AWS_SECURITY_TOKEN_": AWS_SECURITY_TOKEN_,
+                    "AWS_ACCESS_KEY_ID_": AWS_ACCESS_KEY_ID_,
+                    "AWS_SECRET_ACCESS_KEY_": AWS_SECRET_ACCESS_KEY_,          
+                }
         except Exception as exc:
-            print(exc)
+            print(repr(exc)+','.join(exc.args))
             lambda_response = {
                 "statusCode": 400,
                 "body": json.dumps({"msg":"kinesis put failed."}),
                 "handlerLocation": f"{Path(__file__).resolve()}",
-                "exception": str(exc),
+                "exception": repr(exc)+','.join(exc.args),
                 "stream": stream_name,
-                "initial_security_token": initial_security_token,
-                "kinesis_endpoint": kinesis_endpoint
+                "KINESIS_ENDPOINT_": KINESIS_ENDPOINT_,
+                "AWS_SECURITY_TOKEN_": AWS_SECURITY_TOKEN_,
+                "AWS_ACCESS_KEY_ID_": AWS_ACCESS_KEY_ID_,
+                "AWS_SECRET_ACCESS_KEY_": AWS_SECRET_ACCESS_KEY_,
             }
 
         
     print(f"lambda_response:{lambda_response}")
-    try:
-        with open(logoutfilepath, "a")  as outfile:
-            outfile.write(json.dumps(lambda_response)+"\n")
-    except:
-        print("manual log file failed.")
 
     return lambda_response
 

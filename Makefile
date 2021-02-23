@@ -15,7 +15,6 @@ ROOT_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 ### END OF CONSTANT DEFS ###
 .EXPORT_ALL_VARIABLES:
 
-
 ### LOCALSTACK ###
 localstack:			##@d--localstack bring up localstack
 	touch logs/manual-logs.log
@@ -33,23 +32,18 @@ fixtures:				##@d--localstack fixtures that sls deploy needs
 localdeploy:			##@d--localstack deploy to localstack
 	# USAGE: make deploy LOCALSTACK_REGION=<us-east-1|us-west-1> 
 	# e.g. make localdeploy LOCALSTACK_REGION=us-east-1 
-	echo "LOCALSTACK_REGION: ${LOCALSTACK_REGION}" && \
-	echo "LOCALSTACK_STAGE: ${LOCALSTACK_STAGE}" && \
-	unset AWS_PROFILE && \
 	source .localstack/.env.point-to-localstack && \
 	${dcr} "sls print --stage ${LOCALSTACK_STAGE} --region ${LOCALSTACK_REGION} && \
 	sls deploy --stage ${LOCALSTACK_STAGE} --region ${LOCALSTACK_REGION}"
-	# 	awslocal --endpoint http://localstack:4566 --region us-east-1
-	#  cloudformation validate-template --template-body file:///var/task/.serverless/cloudformation-template-update-stack.json
 
-#GOTCHA "sls remove" does not work against localstack
-# need to tear down localstack and start fresh
+	
 
 FUN?=aroundTheWorld
 localinvoke:           ##@d--localstack try invoking (local, localstack from sls, localstack w/ awslocal)
 	# USAGE: make localinvoke FUN=<aroundTheWorld> LOCALSTACK_REGION=<us-east-1|us-west-1> 
 	# e.g. make localinvoke LOCALSTACK_REGION=us-east-1 
 	source .localstack/.env.point-to-localstack && \
+	export KINESIS_ENDPOINT=http://localstack:4566 && \
 	echo "[0] invoke local in localstack with sls" && \
 	${dcr} "sls invoke local -f ${FUN} --stage ${LOCALSTACK_STAGE} --region ${LOCALSTACK_REGION} --path test/functions/${FUN}/data/hello.json" && \
 	echo "[1] invoke in localstack with sls" && \
@@ -60,7 +54,6 @@ localinvoke:           ##@d--localstack try invoking (local, localstack from sls
 		--payload '{\"Records\": [{\"kinesis\": {\"data\": \"eyJtc2ciOiAiaGkifQ==\"}}]}' \
 		/dev/null"	
 
-
 diagnose:				##@d--localstack awslocal describe existing stack
 	# USAGE: make diagnose LOCALSTACK_STAGE=<simple>
 	# e.g. make diagnose
@@ -69,29 +62,29 @@ diagnose:				##@d--localstack awslocal describe existing stack
 	${dcr} "awslocal cloudformation describe-stack-resources --stack-name ${stackName}-${LOCALSTACK_STAGE} --endpoint http://localstack:4566"
 	${dcr} "awslocal lambda list-functions --endpoint http://localstack:4566" 
 
-
 shell:					##@e--sls shell
 	source .localstack/.env.point-to-localstack && \
 	${dcr}  /bin/bash
 
-
-listen:					##@f--utils listen to stream
-	source .localstack/.env.point-to-localstack && \
-	${dcr} "python3 ./test/consumers/listen.py"	
-
+PUBLISH_STREAM_NAME?=demo-source-stream
 publish:				##@f--utils kinesis publish
+	# USAGE: make publish PUBLISH_STREAM_NAME=<demo-source-strea|demo-sink-stream>
+	# e.g. make listen PUBLISH_STREAM_NAME=demo-source-stream
 	${localstack_env} ${dcr} "\
 		AWS_DEFAULT_REGION=us-east-1 \
 		&& KINESIS_ENDPOINT=http://localstack:4566 \
 		&& STREAM_NAME=${SOURCE_STREAM_NAME} \
 		python3 ./test/producers/produce.py \
 		"	
-	# # TODO shift to container
-	# source ${ROOT_DIR}/.localstack/.env.pipenv \
-	# && env | grep AWS* \
-	# && python3 ./test/producers/script.py
+		
+LISTEN_STREAM_NAME?=demo-sink-stream
+listen:					##@f--utils listen to stream
+	# USAGE: make listen LISTEN_STREAM_NAME=<demo-source-strea|demo-sink-stream>
+	# e.g. make listen LISTEN_STREAM_NAME=demo-sink-stream
+	source .localstack/.env.point-to-localstack && \
+	${dcr} "python3 ./test/consumers/listen.py"	
 
-log:					##@f--utils kinesis
+logs:					##@f--utils kinesis
 	# USAGE: make log FUN=<hello|around_the_world> LOCALSTACK_REGION=<us-east-1|us-west-1> LOCALSTACK_STAGE=<local>
 	# e.g. make log FUN=aroundTheWorld LOCALSTACK_REGION=us-east-1 LOCALSTACK_STAGE=simple
 	${dcr} "\
@@ -104,15 +97,19 @@ log:					##@f--utils kinesis
 		describe-log-streams \
 		--log-group-name /aws/lambda/${stackName}-${LOCALSTACK_STAGE}-${FUN} \
 		--endpoint http://localstack:4566 --region ${LOCALSTACK_REGION}  \
+		" && \
+	${dcr} "\
+		awslocal logs \
+		describe-log-streams \
+		--log-group-name /aws/lambda/${stackName}-${LOCALSTACK_STAGE}-${FUN} \
+		--endpoint http://localstack:4566 --region ${LOCALSTACK_REGION}  \
 		" > /var/tmp/logStreamName && \
 	${dcr} "\
 		awslocal logs \
 		get-log-events  \
 		--log-group-name /aws/lambda/${stackName}-${LOCALSTACK_STAGE}-${FUN} \
-		--log-stream-name `cat /var/tmp/logStreamName | jq '.logStreams[0].logStreamName'` \
+		--log-stream-name `cat /var/tmp/logStreamName | jq '.logStreams[-1].logStreamName'` \
 		--endpoint http://localstack:4566 --region ${LOCALSTACK_REGION} \
 		"
-
-# cat ${TMPFILE} | jq '.logStreamName[0].logStreamName' && \
 
 .PHONY: 

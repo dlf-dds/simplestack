@@ -28,20 +28,15 @@ services:
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
       - AWS_SECURITY_TOKEN
-      - KINESIS_ENDPOINT
+      - AWS_REGION     
+      - KINESIS_ENDPOINT 
       - DOCKER_HOST=unix:///var/run/docker.sock
       # LOCALSTACK_REGION and LOCALSTACK_STAGE are used in fixture creation
       - LOCALSTACK_REGION
       - LOCALSTACK_STAGE
+      - LISTEN_STREAM_NAME
+      - PUBLISH_STREAM_NAME
     volumes:      
-      # - "./Pipfile:/var/task/Pipfile"        
-      # - "./functions:/var/task/functions"   
-      # - "./test:/var/task/test"  
-      # - "./logs:/var/task/logs"  
-      # - "./serverless.yml:/var/task/serverless.yml"  
-      # - "./variables.yml:/var/task/variables.yml"  
-      # - "./stage.simple.yml:/var/task/stage.simple.yml"   
-      # - "./.localstack:/var/task/.localstack"
       - ".:/var/task/"
       - "/var/run/docker.sock:/var/run/docker.sock" 
     depends_on: 

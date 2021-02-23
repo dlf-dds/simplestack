@@ -1,9 +1,13 @@
 functions:
   aroundTheWorld:
     environment:
-      SINK_STREAM_NAME: ${self:custom.sink.streamName}
-      AWS_SECURITY_TOKEN: ${env:AWS_SECURITY_TOKEN}
+      SINK_STREAM_NAME: ${self:custom.sink.streamName}      
+      # AWS_ACCESS_KEY_ID: ${env:AWS_ACCESS_KEY_ID}
+      # AWS_SECRET_ACCESS_KEY: ${env:AWS_SECRET_ACCESS_KEY}
+      # AWS_SESSION_TOKEN: ${env:AWS_SESSION_TOKEN}
+      # AWS_SECURITY_TOKEN: ${env:AWS_SECURITY_TOKEN}
       # KINESIS_ENDPOINT: ${env:KINESIS_ENDPOINT}
+      
     handler: functions/aroundtheworld/handler.around_the_world
     memorySize: 1024
     disableLogs: false
