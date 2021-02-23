@@ -6,6 +6,14 @@ e2e localstack
 
 ### set up
 
+#### API KEY
+
+include a `.localstack/.env.localstack.secret` file with your
+unique API KEY like so: `export LOCALSTACK_API_KEY=<your-api-key>` and confirm
+that your `.gitignore` does ignore that file.
+
+#### Bring up localstack and fixtures
+
 `docker-compose build`
 
 `make localstack`
