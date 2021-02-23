@@ -1,0 +1,12 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+      "StreamDemoConsumer": {
+        "Type": "AWS::Kinesis::StreamConsumer",
+        "Properties": {
+          "ConsumerName": "simplestack-service-demo-DLF-local-StreamDemoConsumer",
+          "StreamARN": "\"arn:aws:kinesis:us-east-1:000000000000:stream/demo-source-stream\""
+        }
+    }
+  }
+}

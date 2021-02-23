@@ -1,0 +1,65 @@
+# variables.yml go into ${self:custom.<variable-name>}
+# GOTCHA: `serverless-plugin-composed-vars`  (this file) cannot handle yml multiline statements
+
+stackPrefix: simplestack-service
+stackCoreName: demo
+stackUniqueSuffix: DLF
+serviceName: ${self:custom.stackPrefix}-${self:custom.stackCoreName}-${self:custom.stackUniqueSuffix}
+fullStackName: ${self:custom.serviceName}-${opt:stage, 'simple'} 
+
+stackTags:
+      Project: "SimpleStack"
+      Application: "E2E Tests"
+      Environment: ${opt:stage,  'simple'}      
+      Contact: "mr.stacks@dontemailme.com"
+
+# Creating a mapping on the stage to yield 'stackType'
+localq:
+  simple: simple
+  local: local
+  dev: cloud
+  qa: cloud
+  staging: cloud
+  prod: cloud
+stackType: ${self:custom.localq.${opt:stage, 'simple'}}
+
+common:         
+  environment: ${opt:stage, 'stage'}
+  region: ${opt:region, 'us-east-1'}
+
+source:    
+  project:   'simple'
+  application: 'simple-source' 
+              
+sink:    
+  project:   'simple'
+  application: 'simple-sink'  
+
+pythonRequirements:
+  # GOTCHA: we need to NOT dockerize pip because that leads to DIND and volume mounting complications
+  # pip is already dockerized in that it is run from the sls docker container
+  dockerizePip: false
+  # GOTCHA: Localstack deployments insists on using requirements.txt [ not a Pipfile ]
+  usePipenv: true 
+  useDownloadCache: true
+  useStaticCache: true
+  cacheLocation: ./.serverless/.requirements_cache
+
+
+localstack:
+  # GOTCHA: non-pro localstack requires the region of 'us-east-1'
+  debug: true
+  stages:
+    - simple
+  # GOTCHA: we cannot autostart localstack when running sls from within docker itself
+  # autostart: true  # optional - start LocalStack in Docker on Serverless deploy
+  endpoints:
+  lambda:   
+    # TODO: localhost false with mountCode set to on -- need to get that working
+    # mountCode: True
+  docker:
+    sudo: True
+  # TODO: parameterize the host field to switch btw localhost / localstack
+  # host:  http://localhost
+  host:  http://localstack
+  edgePort: 4566

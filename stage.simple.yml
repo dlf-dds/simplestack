@@ -1,0 +1,85 @@
+functions:
+  aroundTheWorld:
+    environment:
+      SINK_STREAM_NAME: ${self:custom.sink.streamName}
+      AWS_SECURITY_TOKEN: ${env:AWS_SECURITY_TOKEN}
+      # KINESIS_ENDPOINT: ${env:KINESIS_ENDPOINT}
+    handler: functions/aroundtheworld/handler.around_the_world
+    memorySize: 1024
+    disableLogs: false
+    tracing: Active
+    package:
+      exclude:
+        - ./**
+      include:
+        - functions/aroundtheworld/handler.py   
+        - logs/**    
+    events: 
+      - stream:
+          arn: ${self:custom.source.streamArn}          
+          batchWindow: 10
+          parallelizationFactor: 2
+          maximumRetryAttempts: 10          
+          consumer:
+            'Fn::GetAtt':
+              - AroundTheWorldConsumer
+              - ConsumerARN
+          maximumRecordAgeInSeconds: 120
+          startingPosition: LATEST
+          enabled: true                  
+
+Resources:  
+  AroundTheWorldConsumer:
+    Type: AWS::Kinesis::StreamConsumer
+    Properties:
+      ConsumerName: ${self:provider.stackName}-AroundTheWorldStreamConsumer
+      StreamARN: ${self:custom.source.streamArn}   
+
+Outputs:
+  SimpleOutput:
+    Description: Dummy Output
+    Value:
+      "whatever"
+    Export:
+      Name: "whatever-name"
+
+
+lambdaPolicyXRay:
+  Effect: Allow
+  Action:
+    - xray:*    
+  Resource: "*"
+
+lambdaPolicyKinesisRead:
+  Effect: Allow
+  Action:
+    - kinesis:*    
+  Resource: "*"
+
+lambdaPolicyKinesisWrite:
+  Effect: Allow
+  Action:
+    - kinesis:*    
+  Resource: "*"
+
+lambdaPolicyKmsSource:
+  Effect: Allow
+  Action:    
+    - kms:*    
+  #TODO Parameterize  (maybe an SSM use case here)
+  Resource: 
+    - "*"
+
+lambdaPolicyKmsSink:
+  Effect: Allow
+  Action:    
+    - kms:*    
+  #TODO Parameterize  (maybe an SSM use case here)
+  Resource: 
+    - "*"
+  
+lambdaPolicyCloudWatch:
+  Effect: Allow
+  Action:
+    - logs:*    
+  Resource: "*"

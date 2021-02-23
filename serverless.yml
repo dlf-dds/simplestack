@@ -1,0 +1,60 @@
+service: ${self:custom.serviceName}
+frameworkVersion: 2.25.2
+
+plugins:
+  - serverless-plugin-composed-vars
+  - serverless-deployment-bucket
+  - serverless-python-requirements
+  - serverless-localstack
+  - serverless-plugin-include-dependencies
+
+provider:
+  name: aws
+  stackTags: ${self:custom.stackTags}
+  iam:
+    role:
+      statements:  
+        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyXRay}
+        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyKinesisRead}
+        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyKinesisWrite}
+        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyKmsSource}
+        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyKmsSink}
+        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyCloudWatch}
+  runtime: python3.8
+  stage: ${opt:stage,  'simple'} 
+  region: ${opt:region, 'us-east-1'}
+  stackName: ${self:custom.fullStackName}
+  memorySize: 512 
+  lambdaHashingVersion: "20201221"
+  deploymentBucket:
+    name: ${self:custom.stackPrefix}-lambda-deployments-${opt:stage, 'simple'}
+    serverSideEncryption: AES256
+  
+custom:      
+  source:    
+    streamSsnKeyBase: "\
+      /${self:custom.source.project}\
+      /${self:custom.source.application}\
+      /${self:custom.common.environment}\
+      /${self:custom.common.region}"
+    streamArn: ${ssm:${self:custom.source.streamSsnKeyBase}/stream_arn~true}  
+    streamName: ${ssm:${self:custom.source.streamSsnKeyBase}/stream_name~true}              
+  sink:    
+    streamSsnKeyBase: "\
+      /${self:custom.sink.project}\
+      /${self:custom.sink.application}\
+      /${self:custom.common.environment}\
+      /${self:custom.common.region}"    
+    streamArn: ${ssm:${self:custom.sink.streamSsnKeyBase}/stream_arn~true}  
+    streamName: ${ssm:${self:custom.sink.streamSsnKeyBase}/stream_name~true}      
+
+package:
+  individually: true
+
+functions:
+  ${file(stage.${self:custom.stackType}.yml):functions}      
+
+resources:
+  - Resources: ${file(stage.${self:custom.stackType}.yml):Resources}    
+  - Outputs: ${file(stage.${self:custom.stackType}.yml):Outputs}
+      

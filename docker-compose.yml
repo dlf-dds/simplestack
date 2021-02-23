@@ -1,0 +1,48 @@
+version: '2.1'
+
+services:
+  localstack:
+    privileged: true
+    container_name: "localstack-container"
+    image: localstack/localstack:latest
+    ports:
+      - "443:443"
+      - "4566:4566"
+      - "${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}"
+    env_file:
+      - ./.localstack/.env.localstack
+      - ./.localstack/.env.localstack.secret
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock            
+    volumes:
+      - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./logs:/var/task/logs"
+
+  docker-sls:  
+    build: .    
+    container_name: "sls-container"
+    working_dir: /var/task
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_SECURITY_TOKEN
+      - KINESIS_ENDPOINT
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      # LOCALSTACK_REGION and LOCALSTACK_STAGE are used in fixture creation
+      - LOCALSTACK_REGION
+      - LOCALSTACK_STAGE
+    volumes:      
+      # - "./Pipfile:/var/task/Pipfile"        
+      # - "./functions:/var/task/functions"   
+      # - "./test:/var/task/test"  
+      # - "./logs:/var/task/logs"  
+      # - "./serverless.yml:/var/task/serverless.yml"  
+      # - "./variables.yml:/var/task/variables.yml"  
+      # - "./stage.simple.yml:/var/task/stage.simple.yml"   
+      # - "./.localstack:/var/task/.localstack"
+      - ".:/var/task/"
+      - "/var/run/docker.sock:/var/run/docker.sock" 
+    depends_on: 
+      - localstack
