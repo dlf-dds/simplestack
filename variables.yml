@@ -15,6 +15,7 @@ stackTags:
 
 # Creating a mapping on the stage to yield 'stackType'
 localq:
+  hello: hello
   simple: simple
   local: local
   dev: cloud
@@ -24,7 +25,7 @@ localq:
 stackType: ${self:custom.localq.${opt:stage, 'simple'}}
 
 common:         
-  environment: ${opt:stage, 'stage'}
+  environment: ${opt:stage, 'simple'}
   region: ${opt:region, 'us-east-1'}
 
 source:    
@@ -50,6 +51,7 @@ localstack:
   # GOTCHA: non-pro localstack requires the region of 'us-east-1'
   debug: true
   stages:
+    - hello
     - simple
   # GOTCHA: we cannot autostart localstack when running sls from within docker itself
   # autostart: true  # optional - start LocalStack in Docker on Serverless deploy

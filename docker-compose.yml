@@ -17,7 +17,6 @@ services:
     volumes:
       - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./logs:/var/task/logs"
 
   docker-sls:  
     build: .    
@@ -37,7 +36,13 @@ services:
       - LISTEN_STREAM_NAME
       - PUBLISH_STREAM_NAME
     volumes:      
-      - ".:/var/task/"
+      - "./.localstack:/var/task/.localstack"
+      - "./functions:/var/task/functions"
+      - "./logs:/var/task/logs"
+      - "./test:/var/task/test"
+      - "./serverless.yml:/var/task/serverless.yml"
+      - "./stages:/var/task/stages"
+      - "./variables.yml:/var/task/variables.yml"
       - "/var/run/docker.sock:/var/run/docker.sock" 
     depends_on: 
       - localstack

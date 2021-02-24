@@ -15,9 +15,9 @@ ROOT_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 ### END OF CONSTANT DEFS ###
 .EXPORT_ALL_VARIABLES:
 
+
 ### LOCALSTACK ###
 localstack:			##@d--localstack bring up localstack
-	touch logs/manual-logs.log
 	docker-compose down --remove-orphans \
 	&& sleep 2 \
 	&& docker-compose up localstack
@@ -29,14 +29,19 @@ fixtures:				##@d--localstack fixtures that sls deploy needs
 	# e.g. make fixtures LOCALSTACK_REGION=us-east-1 
 	${dcr} ./.localstack/fixtures.sh 	
 
-localdeploy:			##@d--localstack deploy to localstack
+localpackage:			##@d--localstack deploy to localstack
 	# USAGE: make deploy LOCALSTACK_REGION=<us-east-1|us-west-1> 
-	# e.g. make localdeploy LOCALSTACK_REGION=us-east-1 
+	# e.g. make localdeploy LOCALSTACK_STAGE=simple LOCALSTACK_REGION=us-east-1 
+	source .localstack/.env.point-to-localstack && \
+	${dcr} "sls package --stage ${LOCALSTACK_STAGE} --region ${LOCALSTACK_REGION}"
+	
+
+localdeploy:			##@d--localstack deploy to localstack
+	# USAGE: make deploy LOCALSTACK_STAGE=simple LOCALSTACK_REGION=<us-east-1|us-west-1> 
+	# e.g. make localdeploy LOCALSTACK_STAGE=simple LOCALSTACK_REGION=us-east-1 
 	source .localstack/.env.point-to-localstack && \
 	${dcr} "sls print --stage ${LOCALSTACK_STAGE} --region ${LOCALSTACK_REGION} && \
-	sls deploy --stage ${LOCALSTACK_STAGE} --region ${LOCALSTACK_REGION}"
-
-	
+	sls deploy --stage ${LOCALSTACK_STAGE} --region ${LOCALSTACK_REGION}"	
 
 FUN?=aroundTheWorld
 localinvoke:           ##@d--localstack try invoking (local, localstack from sls, localstack w/ awslocal)
@@ -112,4 +117,4 @@ logs:					##@f--utils kinesis
 		--endpoint http://localstack:4566 --region ${LOCALSTACK_REGION} \
 		"
 
-.PHONY: 
+.PHONY: logs

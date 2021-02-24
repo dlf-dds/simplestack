@@ -40,13 +40,12 @@ RUN ln -sf /opt/yarn/dist/bin/yarn /usr/local/bin/yarn && \
 
 RUN yarn global add serverless@$SERVERLESS_VERSION
 
-RUN yarn global add   \
-  serverless-plugin-resource-tagging@1.0.11 \
-  serverless-deployment-bucket@1.3.0 \
-  serverless-localstack@0.4.28 \
-  serverless-plugin-composed-vars@1.0.3 \
-  serverless-plugin-include-dependencies@4.1.0 \
-  serverless-python-requirements@5.1.0
+COPY package.json .
+RUN yarn install  \
+    && mkdir /serverless/ \
+    && cp -r ./node_modules/ /serverless/ \
+    && ls /serverless \
+    && ls /serverless/node_modules
 
 # needed to avoid tabcompletion nag 
 RUN sls config tabcompletion install

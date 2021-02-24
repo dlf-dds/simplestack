@@ -14,12 +14,12 @@ provider:
   iam:
     role:
       statements:  
-        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyXRay}
-        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyKinesisRead}
-        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyKinesisWrite}
-        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyKmsSource}
-        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyKmsSink}
-        - ${file(stage.${self:custom.stackType}.yml):lambdaPolicyCloudWatch}
+        - ${file(stages/stage.${self:custom.stackType}.yml):lambdaPolicyXRay}
+        - ${file(stages/stage.${self:custom.stackType}.yml):lambdaPolicyKinesisRead}
+        - ${file(stages/stage.${self:custom.stackType}.yml):lambdaPolicyKinesisWrite}
+        - ${file(stages/stage.${self:custom.stackType}.yml):lambdaPolicyKmsSource}
+        - ${file(stages/stage.${self:custom.stackType}.yml):lambdaPolicyKmsSink}
+        - ${file(stages/stage.${self:custom.stackType}.yml):lambdaPolicyCloudWatch}
   runtime: python3.8
   stage: ${opt:stage,  'simple'} 
   region: ${opt:region, 'us-east-1'}
@@ -30,7 +30,7 @@ provider:
     name: ${self:custom.stackPrefix}-lambda-deployments-${opt:stage, 'simple'}
     serverSideEncryption: AES256
   
-custom:      
+custom:  
   source:    
     streamSsnKeyBase: "\
       /${self:custom.source.project}\
@@ -52,9 +52,9 @@ package:
   individually: true
 
 functions:
-  ${file(stage.${self:custom.stackType}.yml):functions}      
+  ${file(./stages/stage.${self:custom.stackType}.yml):functions}      
 
 resources:
-  - Resources: ${file(stage.${self:custom.stackType}.yml):Resources}    
-  - Outputs: ${file(stage.${self:custom.stackType}.yml):Outputs}
+  - Resources: ${file(stages/stage.${self:custom.stackType}.yml):Resources}    
+  - Outputs: ${file(stages/stage.${self:custom.stackType}.yml):Outputs}
       
